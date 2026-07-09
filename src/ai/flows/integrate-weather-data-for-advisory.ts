@@ -1,17 +1,12 @@
-
 'use server';
 
 /**
- * @fileOverview Integrates weather data into the advisory for farmers.
- *
- * - integrateWeatherDataForAdvisory - A function that integrates weather data into the advisory process.
- * - IntegrateWeatherDataForAdvisoryInput - The input type for the integrateWeatherDataForAdvisory function.
- * - IntegrateWeatherDataForAdvisoryOutput - The return type for the integrateWeatherDataForAdvisory function.
+ * @fileOverview Integrates weather data into the advisory for farmers using the local AI service.
  */
 
-import {ai} from '@/ai/genkit';
+import { getLocalWeatherAdvisory } from '@/lib/local-ai-client';
 import { getCurrentWeather } from '@/services/weather';
-import {z} from 'genkit';
+import { z } from 'zod';
 
 const IntegrateWeatherDataForAdvisoryInputSchema = z.object({
   cropType: z.string().describe('The type of crop.'),
@@ -36,77 +31,32 @@ const IntegrateWeatherDataForAdvisoryOutputSchema = z.object({
 });
 export type IntegrateWeatherDataForAdvisoryOutput = z.infer<typeof IntegrateWeatherDataForAdvisoryOutputSchema>;
 
-export async function integrateWeatherDataForAdvisory(input: IntegrateWeatherDataForAdvisoryInput): Promise<IntegrateWeatherDataForAdvisoryOutput> {
+export async function integrateWeatherDataForAdvisory(
+  input: IntegrateWeatherDataForAdvisoryInput
+): Promise<IntegrateWeatherDataForAdvisoryOutput> {
   return integrateWeatherDataForAdvisoryFlow(input);
 }
 
+async function integrateWeatherDataForAdvisoryFlow(
+  input: IntegrateWeatherDataForAdvisoryInput
+): Promise<IntegrateWeatherDataForAdvisoryOutput> {
+  let weatherData: z.infer<typeof WeatherDataSchema> | undefined;
+  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHERMAP_API_KEY;
 
-const PromptInputSchema = IntegrateWeatherDataForAdvisoryInputSchema.extend({
-    weather: WeatherDataSchema.optional(),
-});
-
-
-const prompt = ai.definePrompt({
-  name: 'integrateWeatherDataForAdvisoryPrompt',
-  input: {schema: PromptInputSchema},
-  output: {schema: z.object({ integratedAdvisory: z.string() }) },
-  prompt: `You are an expert agricultural advisor. You are provided with a base advisory, crop information, and current weather data. Your task is to integrate the weather data into the advisory to provide more specific and relevant recommendations.
-
-Base Advisory: {{{advisory}}}
-Crop Type: {{{cropType}}}
-Soil Details: {{{soilDetails}}}
-Current Stage: {{{currentStageOfCrop}}}
-
-Location: {{{location}}}
-
-{{#if language}}
-IMPORTANT: Your entire response must be in the following language: {{{language}}}.
-{{/if}}
-
-{{#if weather}}
-Current Weather Conditions:
-- Temperature: {{weather.temperature}}°C
-- Condition: {{weather.condition}}
-- Humidity: {{weather.humidity}}%
-- Wind Speed: {{weather.windSpeed}} km/h
-
-Based on all this information, provide an integrated advisory that takes into account the current weather conditions.
-{{else}}
-Could not retrieve weather data. Please provide a general advisory based on the crop and soil information.
-{{/if}}
-`,
-});
-
-const integrateWeatherDataForAdvisoryFlow = ai.defineFlow(
-  {
-    name: 'integrateWeatherDataForAdvisoryFlow',
-    inputSchema: IntegrateWeatherDataForAdvisoryInputSchema,
-    outputSchema: IntegrateWeatherDataForAdvisoryOutputSchema,
-  },
-  async input => {
-    let weatherData;
-    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHERMAP_API_KEY;
-    
-    if (apiKey) {
-        try {
-            weatherData = await getCurrentWeather(input.location, apiKey);
-        } catch (e) {
-            console.error("Failed to fetch weather in flow:", e);
-            // We can continue without weather data, the prompt is designed to handle this.
-        }
-    } else {
-        console.warn("OPENWEATHERMAP_API_KEY is not configured. Skipping weather fetch.");
+  if (apiKey) {
+    try {
+      weatherData = await getCurrentWeather(input.location, apiKey);
+    } catch (error) {
+      console.error('Failed to fetch weather in flow:', error);
     }
-    
-    const { output } = await prompt({ ...input, weather: weatherData });
-
-    if (!output) {
-      throw new Error("Failed to generate advisory from the model.");
-    }
-
-    return {
-        integratedAdvisory: output.integratedAdvisory,
-        weather: weatherData,
-    };
+  } else {
+    console.warn('OPENWEATHERMAP_API_KEY is not configured. Skipping weather fetch.');
   }
-);
+
+  const output = await getLocalWeatherAdvisory({ ...input, weather: weatherData });
+
+  return IntegrateWeatherDataForAdvisoryOutputSchema.parse({
+    integratedAdvisory: output.integratedAdvisory,
+    weather: weatherData,
+  });
+}

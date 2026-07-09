@@ -197,7 +197,7 @@ export default function ExpenseTrackerPage() {
                     <TransactionList 
                         transactions={filteredTransactions} 
                         onDeleteTransaction={handleDeleteTransaction} 
-                        cropName={activeCrop?.name || ''}
+                        itemName={activeCrop?.name || ''}
                     />
                 </div>
                 <div className="lg:col-span-1 space-y-6 sticky top-20">

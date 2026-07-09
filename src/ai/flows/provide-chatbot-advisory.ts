@@ -8,8 +8,8 @@
  * - ProvideChatbotAdvisoryOutput - The return type for the provideChatbotAdvisory function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { analyzeLocalDiseaseImage, getLocalChatAdvice } from '@/lib/local-ai-client';
+import {z} from 'zod';
 
 const ChatHistorySchema = z.object({
     role: z.enum(['user', 'assistant']),
@@ -43,57 +43,36 @@ export async function provideChatbotAdvisory(input: ProvideChatbotAdvisoryInput)
   return provideChatbotAdvisoryFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'provideChatbotAdvisoryPrompt',
-  input: {schema: ProvideChatbotAdvisoryInputSchema},
-  output: {schema: ProvideChatbotAdvisoryOutputSchema},
-  prompt: `You are an expert AI agricultural advisor chatbot named eKheti. Your goal is to provide helpful, concise, and actionable advice to farmers. You are an expert in all aspects of farming, including soil health, crop management, pest and disease control, and market trends.
+async function provideChatbotAdvisoryFlow(
+  input: ProvideChatbotAdvisoryInput
+): Promise<ProvideChatbotAdvisoryOutput> {
+  let imageContext = '';
 
-  **Core Instructions & Memory:**
-  - If the user asks who created or developed you, you MUST reply with the name "Harsh Raj".
-  - Always remember and use the full conversation history provided below. If a farmer asks a follow-up question like 'When should I do it?' or 'What about mangoes?', you MUST refer back to earlier messages to give context-aware answers. Do not restart fresh on every query.
-  - If the context is unclear or missing from the history, politely ask the farmer for clarification instead of guessing.
-  - If a user-uploaded document is provided, its content is additional context. Answer questions based on the document's content.
-  - If an image is provided, analyze it and incorporate your findings into the response. The image could be anything from a diseased plant, a type of soil, an insect, or a farming tool.
-  - If you do not know the answer, say so. Do not make up information.
-  - Format your response using markdown for better readability (e.g., use **bold** for emphasis, lists for steps).
-  - Keep the tone simple, supportive, and farmer-friendly.
-  - {{#if language}}IMPORTANT: You MUST respond in the user's specified language: {{{language}}}. Detect the language of the query and respond in that language.{{else}}Respond in the user's language. Be conversational and friendly.{{/if}}
-  
-  **Conversation History (Your Memory):**
-  {{#if history}}
-    {{#each history}}
-      {{this.role}}: {{this.text}}
-    {{/each}}
-  {{else}}
-    This is the beginning of the conversation.
-  {{/if}}
-
-  {{#if documentContent}}
-  The user has also uploaded a document. Its content is additional context for the current query.
-  Document Content:
-  ---
-  {{{documentContent}}}
-  ---
-  {{/if}}
-
-  Current User Query:
-  Text: {{{query}}}
-  {{#if photoDataUri}}
-  Image: {{media url=photoDataUri}}
-  {{/if}}
-  
-  Your expert advice:`,
-});
-
-const provideChatbotAdvisoryFlow = ai.defineFlow(
-  {
-    name: 'provideChatbotAdvisoryFlow',
-    inputSchema: ProvideChatbotAdvisoryInputSchema,
-    outputSchema: ProvideChatbotAdvisoryOutputSchema,
-  },
-  async (input) => {
-    const {output} = await prompt(input);
-    return output!;
+  if (input.photoDataUri) {
+    try {
+      const diseaseResult = await analyzeLocalDiseaseImage({
+        photoDataUri: input.photoDataUri,
+        itemType: input.managementType === 'Fruits' ? 'Fruit' : 'Crop',
+        language: input.language,
+      });
+      imageContext =
+        `Image analysis result: ${diseaseResult.diseaseName}, confidence ${Math.round(diseaseResult.confidenceLevel * 100)}%. ` +
+        `Suggested treatment: ${diseaseResult.suggestedSolutions}`;
+    } catch (error) {
+      console.warn('Image analysis failed inside chatbot flow:', error);
+      imageContext = 'Image was attached, but local image analysis failed.';
+    }
   }
-);
+
+  const documentContent = [input.documentContent, imageContext].filter(Boolean).join('\n\n');
+
+  const output = await getLocalChatAdvice({
+    query: input.query,
+    managementType: input.managementType,
+    history: input.history,
+    documentContent: documentContent || undefined,
+    language: input.language,
+  });
+
+  return ProvideChatbotAdvisoryOutputSchema.parse(output);
+}

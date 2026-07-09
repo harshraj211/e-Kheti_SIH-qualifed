@@ -8,8 +8,7 @@
  * - GetKhetiSamacharOutput - Output schema for the flow.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const GetKhetiSamacharInputSchema = z.object({
   language: z.enum(['en', 'hi']).describe('The language for the news articles.'),
@@ -33,17 +32,7 @@ export type GetKhetiSamacharOutput = z.infer<typeof GetKhetiSamacharOutputSchema
 
 
 export async function getKhetiSamachar(input: GetKhetiSamacharInput): Promise<GetKhetiSamacharOutput> {
-    return getKhetiSamacharFlow(input);
-}
-
-
-const getKhetiSamacharFlow = ai.defineFlow(
-  {
-    name: 'getKhetiSamacharFlow',
-    inputSchema: GetKhetiSamacharInputSchema,
-    outputSchema: GetKhetiSamacharOutputSchema,
-  },
-  async ({ language }) => {
+    const { language } = GetKhetiSamacharInputSchema.parse(input);
     const apiKey = process.env.NEWSDATA_API_KEY;
     if (!apiKey) {
       throw new Error("NEWSDATA_API_KEY is not configured in environment variables.");
@@ -73,7 +62,7 @@ const getKhetiSamacharFlow = ai.defineFlow(
 
         const articles = data.results || [];
         
-        return {
+        return GetKhetiSamacharOutputSchema.parse({
             articles: articles.map((article: any) => ({
                 title: article.title,
                 link: article.link,
@@ -82,11 +71,10 @@ const getKhetiSamacharFlow = ai.defineFlow(
                 image_url: article.image_url,
                 source_id: article.source_id,
             })),
-        };
+        });
 
     } catch (error) {
         console.error("Error fetching or parsing news:", error);
         throw new Error("Failed to fetch news from the API.");
     }
-  }
-);
+}

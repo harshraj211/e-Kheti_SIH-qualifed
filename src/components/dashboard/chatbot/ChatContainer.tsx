@@ -4,7 +4,6 @@
 import { useState, useEffect, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { provideChatbotAdvisory, ProvideChatbotAdvisoryInput } from '@/ai/flows/provide-chatbot-advisory';
-import { generateSpeechFromText } from '@/ai/flows/generate-speech-from-text';
 import { ChatbotCard } from '../ChatbotCard';
 import { ChatHistorySidebar } from './ChatHistorySidebar';
 import type { Message, Conversation, DocumentAttachment } from '@/lib/chat-types';
@@ -35,8 +34,6 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
         isLoading: false,
         messageId: null as string | null,
     });
-    const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-
     const activeConversation = conversations.find(c => c.id === activeConversationId);
 
     // Load chat history from localStorage on component mount
@@ -95,38 +92,40 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
 
     const handleTextToSpeech = async (text: string, messageId: string) => {
         if (audioState.isPlaying && audioState.messageId === messageId) {
-            audio?.pause();
+            window.speechSynthesis.cancel();
             setAudioState({ isPlaying: false, isLoading: false, messageId: null });
             return;
         }
 
-        setAudioState({ isPlaying: false, isLoading: true, messageId });
-        try {
-            const result = await generateSpeechFromText({ text });
-            const audioData = result.audioDataUri;
-            
-            if (audioData) {
-                const newAudio = new Audio(audioData);
-                setAudio(newAudio);
-                newAudio.play();
-                setAudioState({ isPlaying: true, isLoading: false, messageId });
-                newAudio.onended = () => {
-                    setAudioState({ isPlaying: false, isLoading: false, messageId: null });
-                };
-            }
-        } catch (error) {
-            console.error("Error generating speech:", error);
+        if (!('speechSynthesis' in window)) {
             toast({
                 variant: 'destructive',
                 title: "Speech Error",
-                description: "Could not generate audio for this message."
+                description: "Text-to-speech is not supported in this browser."
             });
-            setAudioState({ isPlaying: false, isLoading: false, messageId: null });
+            return;
         }
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language;
+        utterance.onstart = () => setAudioState({ isPlaying: true, isLoading: false, messageId });
+        utterance.onend = () => setAudioState({ isPlaying: false, isLoading: false, messageId: null });
+        utterance.onerror = () => {
+            setAudioState({ isPlaying: false, isLoading: false, messageId: null });
+            toast({
+                variant: 'destructive',
+                title: "Speech Error",
+                description: "Could not play audio for this message."
+            });
+        };
+
+        setAudioState({ isPlaying: false, isLoading: true, messageId });
+        window.speechSynthesis.speak(utterance);
     };
 
 
-    const handleSendMessage = (userMessage: Message, attachments: { image?: string | null, document?: DocumentAttachment | null }) => {
+    const handleSendMessage = async (userMessage: Message, attachments: { image?: string | null, document?: DocumentAttachment | null }) => {
         let conversationId = activeConversationId;
         let conversationForHistory = activeConversation;
         

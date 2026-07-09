@@ -61,30 +61,30 @@ export default function KhetiSamacharPage() {
                  <div className="aspect-video relative w-full mb-4">
                     <Image
                         src={article.image_url}
-                        alt={article.title}
+                        alt={article.title || 'Agriculture news image'}
                         fill
                         className="object-cover rounded-t-lg"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                  </div>
               )}
-              <CardTitle className="text-lg leading-snug">{article.title}</CardTitle>
+              <CardTitle className="text-lg leading-snug">{article.title || 'Untitled article'}</CardTitle>
               <CardDescription>
                 <div className="flex items-center gap-2 text-xs pt-1">
-                    <Globe className="h-3 w-3"/> <span>{article.source_id}</span>
+                    <Globe className="h-3 w-3"/> <span>{article.source_id || 'Unknown source'}</span>
                     <span className='px-1'>&bull;</span>
-                    <span>{new Date(article.pubDate).toLocaleDateString()}</span>
+                    <span>{article.pubDate ? new Date(article.pubDate).toLocaleDateString() : 'Date unavailable'}</span>
                 </div>
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-sm text-muted-foreground line-clamp-3">
-                {article.description}
+                {article.description || 'No description available.'}
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="secondary" className="w-full">
-                <a href={article.link} target="_blank" rel="noopener noreferrer">
+                <a href={article.link || '#'} target="_blank" rel="noopener noreferrer">
                   Read Full Article <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </Button>

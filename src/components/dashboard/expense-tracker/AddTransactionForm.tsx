@@ -37,7 +37,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 // This becomes generic, not tied to the page component
 export type Transaction = {
   id: string;
-  itemId: string;
+  itemId?: string;
+  cropId?: string;
   type: 'income' | 'expense';
   category: string;
   amount: number;
@@ -58,7 +59,7 @@ const formSchema = z.object({
 });
 
 type AddTransactionFormProps = {
-    onSubmit: (data: Omit<Transaction, 'id' | 'itemId'>) => void;
+    onSubmit: (data: Omit<Transaction, 'id' | 'itemId' | 'cropId'>) => void;
     disabled?: boolean;
 }
 
@@ -81,7 +82,10 @@ export function AddTransactionForm({ onSubmit, disabled = false }: AddTransactio
 
   function handleFormSubmit(values: z.infer<typeof formSchema>) {
     startTransition(() => {
-        onSubmit(values);
+        onSubmit({
+            ...values,
+            description: values.description ?? '',
+        });
         toast({
             title: t('expenseTrackerPage.addTransaction.toastSuccessTitle'),
             description: t('expenseTrackerPage.addTransaction.toastSuccessDescription', {type: values.type, amount: values.amount, currency: values.currency})

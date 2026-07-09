@@ -20,7 +20,6 @@ import {
   Carrot,
   Citrus,
   Coffee,
-  Eggplant,
   Flower,
   Footprints,
   GalleryVertical,
@@ -40,7 +39,6 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Lightbulb,
-  LightningBolt,
   Link,
   List,
   Loader,
@@ -204,7 +202,6 @@ import {
   Webhook,
   Wifi,
   WifiOff,
-  Windy,
   WrapText,
   Wrench,
   X,
@@ -260,7 +257,7 @@ const iconMap = {
   Potato: Circle, // Placeholder
   Onion: Circle, // Placeholder
   Tomato: Apple,
-  Eggplant,
+  Eggplant: Circle,
   Cauliflower: Flower,
   Cabbage: Leaf,
   Carrot,

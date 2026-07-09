@@ -7,8 +7,8 @@
  * - AnalyzeFruitImageForDiseaseOutput - The return type for the analyzeFruitImageForDisease function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { analyzeLocalDiseaseImage } from '@/lib/local-ai-client';
+import {z} from 'zod';
 
 const AnalyzeFruitImageForDiseaseInputSchema = z.object({
   photoDataUri: z
@@ -38,37 +38,14 @@ export async function analyzeFruitImageForDisease(
   return analyzeFruitImageForDiseaseFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeFruitImageForDiseasePrompt',
-  input: {schema: AnalyzeFruitImageForDiseaseInputSchema},
-  output: {schema: AnalyzeFruitImageForDiseaseOutputSchema},
-  prompt: `You are an expert in pomology and fruit pathology, specializing in identifying fruit diseases from images.
+async function analyzeFruitImageForDiseaseFlow(
+  input: AnalyzeFruitImageForDiseaseInput
+): Promise<AnalyzeFruitImageForDiseaseOutput> {
+  const output = await analyzeLocalDiseaseImage({
+    photoDataUri: input.photoDataUri,
+    itemType: 'Fruit',
+    language: input.language,
+  });
 
-  Analyze the provided fruit image and determine if any diseases are present. Provide the disease name, a confidence level (0-1), and suggested solutions.
-
-  {{#if language}}
-  IMPORTANT: Your entire response (diseaseName and suggestedSolutions) must be in the following language: {{{language}}}.
-  {{/if}}
-
-  Image: {{media url=photoDataUri}}
-
-  Respond in the following JSON format:
-  {
-    "diseaseDetected": boolean,
-    "diseaseName": string,
-    "confidenceLevel": number,
-    "suggestedSolutions": string
-  }`,
-});
-
-const analyzeFruitImageForDiseaseFlow = ai.defineFlow(
-  {
-    name: 'analyzeFruitImageForDiseaseFlow',
-    inputSchema: AnalyzeFruitImageForDiseaseInputSchema,
-    outputSchema: AnalyzeFruitImageForDiseaseOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+  return AnalyzeFruitImageForDiseaseOutputSchema.parse(output);
+}

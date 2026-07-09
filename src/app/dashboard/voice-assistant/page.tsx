@@ -2,13 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, Loader2, Bot, User, Volume2, Languages, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { provideChatbotAdvisory, ProvideChatbotAdvisoryInput } from '@/ai/flows/provide-chatbot-advisory';
-import { generateSpeechFromText } from '@/ai/flows/generate-speech-from-text';
 import {
   Select,
   SelectContent,
@@ -22,7 +21,6 @@ type Message = {
     id: string;
     role: 'user' | 'assistant';
     text: string;
-    audioDataUri?: string;
 };
 
 const supportedLanguages = [
@@ -37,6 +35,12 @@ const supportedLanguages = [
     { code: 'pa', name: 'ਪੰਜਾਬੀ (Punjabi)' },
 ];
 
+function cleanAssistantText(text: string) {
+    return text
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/<\/?think>/gi, '')
+        .trim();
+}
 
 export default function VoiceAssistantPage() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -46,7 +50,6 @@ export default function VoiceAssistantPage() {
     const [replyLanguage, setReplyLanguage] = useState<string>('hi');
 
     const speechRecognitionRef = useRef<any>(null);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
     const { toast } = useToast();
 
     // Check for browser support on mount
@@ -106,24 +109,16 @@ export default function VoiceAssistantPage() {
             };
 
             const advisoryResult = await provideChatbotAdvisory(advisoryInput);
-            const assistantText = advisoryResult.advice;
-
-            const ttsResult = await generateSpeechFromText({ text: assistantText });
-            const audioDataUri = ttsResult.audioDataUri;
+            const assistantText = cleanAssistantText(advisoryResult.advice);
             
             const assistantMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
                 text: assistantText,
-                audioDataUri: audioDataUri,
             };
 
             setMessages(prev => [...prev, assistantMessage]);
-            
-            // Auto-play the audio response
-            if (audioDataUri) {
-                playAudio(audioDataUri);
-            }
+            speakText(assistantText);
 
         } catch (e: any) {
             console.error("Error processing query:", e);
@@ -133,13 +128,20 @@ export default function VoiceAssistantPage() {
         }
     };
     
-    const playAudio = (audioDataUri: string) => {
-        if (audioRef.current) {
-            audioRef.current.pause();
+    const speakText = (text: string) => {
+        if (!('speechSynthesis' in window)) {
+            toast({
+                variant: 'destructive',
+                title: 'Speech Error',
+                description: 'Text-to-speech is not supported in this browser.',
+            });
+            return;
         }
-        const newAudio = new Audio(audioDataUri);
-        audioRef.current = newAudio;
-        newAudio.play().catch(e => console.error("Audio playback error:", e));
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = replyLanguage;
+        window.speechSynthesis.speak(utterance);
     };
 
     return (
@@ -179,8 +181,8 @@ export default function VoiceAssistantPage() {
                                      {msg.role === 'assistant' && <div className="p-2 rounded-full bg-primary text-primary-foreground"><Bot className="h-5 w-5" /></div>}
                                      <div className={cn("rounded-lg p-3 max-w-xl relative group", msg.role === 'user' ? 'bg-primary/10' : 'bg-secondary')}>
                                         <p className="whitespace-pre-wrap">{msg.text}</p>
-                                        {msg.role === 'assistant' && msg.audioDataUri && (
-                                            <Button size="icon" variant="ghost" className="absolute -bottom-4 -right-2" onClick={() => playAudio(msg.audioDataUri)}>
+                                        {msg.role === 'assistant' && (
+                                            <Button size="icon" variant="ghost" className="absolute -bottom-4 -right-2" onClick={() => speakText(msg.text)}>
                                                 <Volume2 className="h-5 w-5" />
                                             </Button>
                                         )}

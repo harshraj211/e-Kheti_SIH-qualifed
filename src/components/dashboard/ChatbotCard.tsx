@@ -32,6 +32,13 @@ type ChatbotCardProps = {
     }
 };
 
+function cleanAssistantText(text: string) {
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
+    .trim();
+}
+
 export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech, audioState }: ChatbotCardProps) {
   const [input, setInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -210,7 +217,9 @@ export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech
                     </div>
                 </div>
             )}
-            {messages.map((message) => (
+            {messages.map((message) => {
+              const displayText = message.role === 'assistant' ? cleanAssistantText(message.text) : message.text;
+              return (
               <div
                 key={message.id}
                 className={cn(
@@ -243,11 +252,11 @@ export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech
                     </div>
                   )}
                   <div className="prose prose-sm max-w-none text-inherit prose-p:my-0 prose-ul:my-0 prose-li:my-0 prose-strong:text-inherit">
-                    <p className="whitespace-pre-wrap">{message.text}</p>
+                    <p className="whitespace-pre-wrap">{displayText}</p>
                   </div>
-                  {message.role === 'assistant' && message.text && (
+                  {message.role === 'assistant' && displayText && (
                     <div className='absolute -bottom-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity'>
-                      <Button size="icon" variant="ghost" className='h-7 w-7' onClick={() => onTextToSpeech(message.text, message.id)} disabled={audioState.isLoading}>
+                      <Button size="icon" variant="ghost" className='h-7 w-7' onClick={() => onTextToSpeech(displayText, message.id)} disabled={audioState.isLoading}>
                         {audioState.isLoading && audioState.messageId === message.id ? (
                            <Loader2 className="h-4 w-4 animate-spin" />
                         ) : audioState.isPlaying && audioState.messageId === message.id ? (
@@ -265,7 +274,8 @@ export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech
                   </Avatar>
                 )}
               </div>
-            ))}
+              );
+            })}
             {isSending && (
                 <div className="flex items-start gap-3 justify-start">
                     <Avatar className="h-8 w-8 bg-primary text-primary-foreground">

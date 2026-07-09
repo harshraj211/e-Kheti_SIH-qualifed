@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getMarketPrices, type GetMarketPricesOutput } from '@/ai/flows/get-market-prices';
 import { Loader2, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTranslation } from '@/hooks/useTranslation';
 import { cropData } from '@/lib/item-data';
+import type { GetMarketPricesOutput } from '@/lib/market-prices';
 
 type MarketPrice = GetMarketPricesOutput['prices'][0];
 
@@ -44,7 +44,14 @@ export function MarketPricesView() {
     setError(null);
     startTransition(async () => {
       try {
-        const result = await getMarketPrices({ location, crop });
+        const response = await fetch(`/api/market-prices?location=${encodeURIComponent(location)}&crop=${encodeURIComponent(crop)}`, {
+          cache: 'no-store',
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to fetch market prices.');
+        }
+        const result = payload as GetMarketPricesOutput;
         const sortedPrices = result.prices.sort((a,b) => parseDate(b.arrivalDate).getTime() - parseDate(a.arrivalDate).getTime());
         setPrices(sortedPrices);
       } catch (e) {

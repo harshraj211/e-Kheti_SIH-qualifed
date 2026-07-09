@@ -72,7 +72,7 @@ export const generateExpenseReportPDF = (transactions: Transaction[], farmerName
           0: { fontStyle: 'bold' },
           1: { halign: 'right' }
       },
-      didDrawCell: (data) => {
+      didDrawCell: (data: any) => {
         if (data.section === 'body' && data.row.index === 2) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(netBalance >= 0 ? 'green' : 'red');

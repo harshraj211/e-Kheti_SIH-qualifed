@@ -7,8 +7,8 @@
  * - AnalyzeCropImageForDiseaseOutput - The return type for the analyzeCropImageForDisease function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { analyzeLocalDiseaseImage } from '@/lib/local-ai-client';
+import {z} from 'zod';
 
 const AnalyzeCropImageForDiseaseInputSchema = z.object({
   photoDataUri: z
@@ -38,30 +38,14 @@ export async function analyzeCropImageForDisease(
   return analyzeCropImageForDiseaseFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeCropImageForDiseasePrompt',
-  input: {schema: AnalyzeCropImageForDiseaseInputSchema},
-  output: {schema: AnalyzeCropImageForDiseaseOutputSchema},
-  prompt: `You are an expert in plant pathology, specializing in identifying crop diseases from images.
+async function analyzeCropImageForDiseaseFlow(
+  input: AnalyzeCropImageForDiseaseInput
+): Promise<AnalyzeCropImageForDiseaseOutput> {
+  const output = await analyzeLocalDiseaseImage({
+    photoDataUri: input.photoDataUri,
+    itemType: 'Crop',
+    language: input.language,
+  });
 
-  Analyze the provided crop image and determine if any diseases are present. Provide the disease name, a confidence level (0-1), and suggested solutions.
-
-  {{#if language}}
-  IMPORTANT: Your entire response (diseaseName and suggestedSolutions) must be in the following language: {{{language}}}.
-  {{/if}}
-
-  Image: {{media url=photoDataUri}}
-  `,
-});
-
-const analyzeCropImageForDiseaseFlow = ai.defineFlow(
-  {
-    name: 'analyzeCropImageForDiseaseFlow',
-    inputSchema: AnalyzeCropImageForDiseaseInputSchema,
-    outputSchema: AnalyzeCropImageForDiseaseOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+  return AnalyzeCropImageForDiseaseOutputSchema.parse(output);
+}

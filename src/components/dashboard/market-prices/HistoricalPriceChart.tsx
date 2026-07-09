@@ -11,6 +11,10 @@ import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type MarketPrice = GetMarketPricesOutput['prices'][0];
+type ChartDatum = {
+    date: string;
+    [crop: string]: string | number | undefined;
+};
 
 const cropOptions = [
     { value: 'Wheat', label: 'Wheat' },
@@ -39,7 +43,7 @@ const parseDate = (dateString: string) => {
 
 export function HistoricalPriceChart({ location }: { location: string }) {
     const [selectedCrops, setSelectedCrops] = useState<string[]>(['Wheat', 'Paddy']);
-    const [chartData, setChartData] = useState<any[]>([]);
+    const [chartData, setChartData] = useState<ChartDatum[]>([]);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +57,7 @@ export function HistoricalPriceChart({ location }: { location: string }) {
                     const allPricesPromises = selectedCrops.map(crop => getMarketPrices({ location, crop }));
                     const allPricesResponses = await Promise.all(allPricesPromises);
                     
-                    const processedData: { [date: string]: { date: string, [crop: string]: number } } = {};
+                    const processedData: Record<string, ChartDatum> = {};
                     const oneMonthAgo = new Date();
                     oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
