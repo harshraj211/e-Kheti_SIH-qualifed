@@ -11,6 +11,16 @@ import { useMemo } from 'react';
 
 const COMMUNITY_POSTS_KEY = 'agriVision-communityPosts';
 
+const hydratePosts = (rawPosts: Post[]): Post[] =>
+    rawPosts.map((post: Post) => ({
+        ...post,
+        timestamp: new Date(post.timestamp),
+        comments: (post.comments || []).map((comment: Comment) => ({
+            ...comment,
+            timestamp: new Date(comment.timestamp),
+        })),
+    }));
+
 export default function CommunityPage() {
     const [posts, setPosts] = useState<Post[]>([]);
     const { t } = useTranslation();
@@ -19,7 +29,7 @@ export default function CommunityPage() {
     useEffect(() => {
         const storedPosts = localStorage.getItem(COMMUNITY_POSTS_KEY);
         if (storedPosts) {
-            setPosts(JSON.parse(storedPosts).map((p: Post) => ({...p, timestamp: new Date(p.timestamp)})));
+            setPosts(hydratePosts(JSON.parse(storedPosts)));
         } else {
             // Add some dummy posts if none exist
             const dummyPosts: Post[] = [
@@ -104,10 +114,11 @@ export default function CommunityPage() {
     }, []);
 
     const filteredPosts = useMemo(() => {
-        if (filter === 'all') return posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        if (filter === 'crops') return posts.filter(p => p.type === 'crop').sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        if (filter === 'fruits') return posts.filter(p => p.type === 'fruit').sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-        return posts.filter(p => p.cropOrFruitName === filter).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        const sortedPosts = [...posts].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        if (filter === 'all') return sortedPosts;
+        if (filter === 'crops') return sortedPosts.filter(p => p.type === 'crop');
+        if (filter === 'fruits') return sortedPosts.filter(p => p.type === 'fruit');
+        return sortedPosts.filter(p => p.cropOrFruitName === filter);
     }, [posts, filter]);
 
 

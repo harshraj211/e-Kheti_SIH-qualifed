@@ -40,6 +40,8 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
     const [content, setContent] = useState('');
     const [item, setItem] = useState('');
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const { toast } = useToast();
     const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,9 +60,7 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
             }
             const reader = new FileReader();
             reader.onloadend = () => {
-                // In a real app, this would be uploaded to Firebase Storage,
-                // and reader.result would be the data to upload.
-                // For this mock, we just store the Data URI.
+                setImageFile(file);
                 setImagePreview(reader.result as string);
             };
             reader.readAsDataURL(file);
@@ -69,12 +69,13 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
 
     const clearImage = () => {
         setImagePreview(null);
+        setImageFile(null);
         if (imageInputRef.current) {
             imageInputRef.current.value = "";
         }
     }
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!content.trim() || !item) {
             toast({
                 variant: 'destructive',
@@ -94,11 +95,39 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
             return;
         }
 
-        onSubmit(content, selectedItem.value, selectedItem.type, imagePreview || undefined);
-        setContent('');
-        setItem('');
-        clearImage();
-        toast({ title: 'Post Created!', description: 'Your post is now live in the community forum.' });
+        let uploadedImageUrl: string | undefined;
+
+        try {
+            if (imageFile) {
+                setIsUploading(true);
+                const uploadForm = new FormData();
+                uploadForm.append('file', imageFile);
+
+                const response = await fetch('/api/community/upload-image', {
+                    method: 'POST',
+                    body: uploadForm,
+                });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Image upload failed.');
+                }
+                uploadedImageUrl = payload.secureUrl;
+            }
+            onSubmit(content, selectedItem.value, selectedItem.type, uploadedImageUrl);
+            setContent('');
+            setItem('');
+            clearImage();
+            toast({ title: 'Post Created!', description: 'Your post is now live in the community forum.' });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Upload failed',
+                description: error instanceof Error ? error.message : 'Could not upload image to Cloudinary.',
+            });
+            return;
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -133,7 +162,7 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
                 )}
                 
                 <div className="flex justify-between items-center">
-                    <Button variant="outline" onClick={() => imageInputRef.current?.click()}>
+                    <Button variant="outline" onClick={() => imageInputRef.current?.click()} disabled={isUploading}>
                         <ImagePlus className="mr-2 h-4 w-4" />
                         {imagePreview ? 'Change Image' : 'Add Image'}
                     </Button>
@@ -145,9 +174,9 @@ export function CreatePostForm({ onSubmit }: CreatePostFormProps) {
                         onChange={handleImageChange}
                     />
 
-                    <Button onClick={handleSubmit}>
+                    <Button onClick={handleSubmit} disabled={isUploading}>
                         <Send className="mr-2 h-4 w-4" />
-                        Post
+                        {isUploading ? 'Uploading...' : 'Post'}
                     </Button>
                 </div>
             </CardContent>
