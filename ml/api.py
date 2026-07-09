@@ -739,6 +739,32 @@ def fallback_chat(query: str, crop_context: str = "crop") -> str:
 def rule_based_agronomy_answer(query: str) -> str | None:
     lower = query.lower()
 
+    if "tomato leaf" in lower and any(phrase in lower for phrase in ["can i eat", "is it edible", "eat this", "safe to eat"]):
+        return (
+            "Tomato leaves are generally not recommended for eating. They are not the edible part normally consumed, "
+            "and if the leaf is diseased or has been sprayed, eating it is even less advisable.\n\n"
+            "Practical answer:\n"
+            "1. Do not eat a diseased tomato leaf.\n"
+            "2. Do not use leaves from plants that may have pesticide or fungicide residue unless you are certain about the product and pre-harvest interval.\n"
+            "3. Focus on whether the fruits are healthy. If the fruit is clean, mature, and disease-free, that is a separate assessment from the leaf.\n"
+            "4. Remove visibly infected leaves from the plant and monitor disease spread.\n\n"
+            "If you want, upload a clear close-up and ask whether the plant likely has early blight, late blight, or another leaf disease."
+        )
+
+    if "image analysis result:" in lower and "tomato" in lower:
+        disease_match = re.search(r"image analysis result:\s*([^,.\n]+)", query, flags=re.IGNORECASE)
+        disease_name = disease_match.group(1).strip() if disease_match else "a tomato leaf disease"
+        return (
+            f"The uploaded tomato leaf most likely matches {disease_name}.\n\n"
+            "What to do next:\n"
+            "1. Remove badly affected lower leaves and keep them out of the field.\n"
+            "2. Avoid overhead irrigation and reduce leaf wetness.\n"
+            "3. Improve spacing and airflow if the crop canopy is dense.\n"
+            "4. Compare symptoms with official tomato disease guidance and confirm before spraying.\n"
+            "5. If fungicide is needed, use only locally approved products at the label dose and avoid spraying during rain, strong wind, or on wet leaves.\n\n"
+            "If you send one more message with field conditions like recent rain, humidity, and whether fruits are also affected, I can narrow the next step further."
+        )
+
     if ("paddy" in lower or "rice" in lower) and "tillering" in lower and "nitrogen" in lower:
         return (
             "For paddy at tillering with low nitrogen, keep the plan simple and weather-aware.\n\n"
@@ -813,13 +839,20 @@ def extract_farmer_facts(query: str) -> list[str]:
 
 
 def generate_text(messages: list[dict], fallback_query: str) -> str:
-    rule_answer = rule_based_agronomy_answer(fallback_query)
+    context_blob = "\n\n".join(
+        m.get("content", "")
+        for m in messages
+        if m.get("role") == "user" and m.get("content")
+    )
+    fallback_context = f"{fallback_query}\n\n{context_blob}".strip()
+
+    rule_answer = rule_based_agronomy_answer(fallback_context)
     if rule_answer:
         return rule_answer
 
     pipe, tokenizer = load_text_pipeline()
     if not pipe:
-        return fallback_chat(fallback_query)
+        return fallback_chat(fallback_context)
 
     if tokenizer and tokenizer.chat_template:
         try:
@@ -839,7 +872,7 @@ def generate_text(messages: list[dict], fallback_query: str) -> str:
         return add_agronomy_safety_note(clean_generation(output), fallback_query)
     except Exception as exc:
         print(f"Text generation failed, using rule fallback: {exc}")
-        return fallback_chat(fallback_query)
+        return fallback_chat(fallback_context)
 
 
 @app.get("/health")
