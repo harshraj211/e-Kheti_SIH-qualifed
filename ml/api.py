@@ -36,6 +36,7 @@ MARKET_API_BASE = os.getenv(
     "AGMARKNET_API_BASE",
     "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
 )
+ENABLE_CPU_TEXT_MODEL = os.getenv("ENABLE_CPU_TEXT_MODEL", "false").lower() == "true"
 
 app = FastAPI(title="eKheti Local AI")
 
@@ -324,6 +325,12 @@ def load_text_pipeline():
     global _text_pipeline, _text_tokenizer
     if _text_pipeline is not None:
         return _text_pipeline, _text_tokenizer
+
+    if not torch.cuda.is_available() and not ENABLE_CPU_TEXT_MODEL:
+        print("Text model disabled on CPU host; using rule fallback.")
+        _text_pipeline = False
+        _text_tokenizer = None
+        return _text_pipeline, None
 
     try:
         from peft import PeftModel
@@ -731,6 +738,20 @@ def fallback_chat(query: str, crop_context: str = "crop") -> str:
 
 def rule_based_agronomy_answer(query: str) -> str | None:
     lower = query.lower()
+
+    if ("paddy" in lower or "rice" in lower) and "tillering" in lower and "nitrogen" in lower:
+        return (
+            "For paddy at tillering with low nitrogen, keep the plan simple and weather-aware.\n\n"
+            "1. Nitrogen: Apply the next split only when the field is manageable and rain is not heavy. "
+            "If only light rain is expected tomorrow, apply after the rain or when leaves are dry so fertilizer is not washed away.\n"
+            "2. Potassium: If potassium is medium, avoid extra application unless your soil report or local package of practices specifically recommends a split dose.\n"
+            "3. Irrigation: Maintain shallow standing water, around 2-5 cm, during tillering. If rain gives enough water, skip irrigation instead of adding more.\n"
+            "4. Next 3-5 days: Watch leaf color and crop vigor. If leaves remain pale after the nitrogen split, confirm the exact area dose for your variety with the local KVK or agriculture officer.\n\n"
+            "Precautions:\n"
+            "- Do not broadcast urea into deep or fast-moving water.\n"
+            "- Do not apply fertilizer just before heavy rainfall.\n"
+            "- Avoid runoff carrying fertilizer out of the field."
+        )
 
     if "tomato" in lower and any(word in lower for word in ["spot", "spots", "ring", "rings", "blight", "fungicide", "spray"]):
         return (
