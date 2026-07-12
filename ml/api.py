@@ -718,8 +718,8 @@ def append_sources(text: str, sources: list[dict]) -> str:
 
 
 def add_agronomy_safety_note(text: str, query: str) -> str:
-    lower = f"{text}\n{query}".lower()
-    if "fungicide" not in lower and "spray" not in lower:
+    lower_query = query.lower()
+    if not any(term in lower_query for term in ("fungicide", "pesticide", "insecticide", "spray")):
         return text
 
     note = (
@@ -727,7 +727,8 @@ def add_agronomy_safety_note(text: str, query: str) -> str:
         "Spray only if the disease is confirmed, follow the product label, use protective gear, "
         "and verify dosage with a local agriculture officer or KVK."
     )
-    if "rain" in lower and "do not spray during rain" not in lower:
+    lower_text = text.lower()
+    if "rain" in lower_query and "do not spray during rain" not in lower_text:
         return text.rstrip() + note
     return text
 
@@ -855,7 +856,7 @@ def generate_with_hf_qwen(messages: list[dict]) -> str | None:
             "model": HF_QWEN_MODEL,
             "messages": messages[-16:],
             "temperature": 0.2,
-            "max_tokens": 500,
+            "max_tokens": 700,
         }
     ).encode("utf-8")
 
@@ -957,6 +958,7 @@ def chat(request: ChatRequest):
         "Never swap phosphorus with potassium or invent missing numbers. "
         "Use this exact concise Markdown structure: **Assessment**, **What to do now**, "
         "**Next 7 days**, **Safety**, and **Missing information**. Omit a section only when it truly does not apply. "
+        "Answer only what the farmer asked; do not add unrelated chemical, foliar-spray, or deficiency treatments. "
         "Do not create a Sources section because verified source links are appended by the eKheti server."
     )
     if request.language:
