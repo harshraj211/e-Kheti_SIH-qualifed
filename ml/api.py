@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote_plus
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import torch
 import uvicorn
@@ -37,6 +37,10 @@ MARKET_API_BASE = os.getenv(
     "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
 )
 ENABLE_CPU_TEXT_MODEL = os.getenv("ENABLE_CPU_TEXT_MODEL", "false").lower() == "true"
+HF_QWEN_API_URL = os.getenv("HF_QWEN_API_URL", "").rstrip("/")
+HF_API_TOKEN = os.getenv("HF_API_TOKEN") or os.getenv("HF_TOKEN") or ""
+HF_QWEN_MODEL = os.getenv("HF_QWEN_MODEL", "Qwen/Qwen3-4B-Instruct-2507")
+HF_QWEN_TIMEOUT_SECONDS = int(os.getenv("HF_QWEN_TIMEOUT_SECONDS", "150"))
 
 app = FastAPI(title="eKheti Local AI")
 
@@ -838,6 +842,34 @@ def extract_farmer_facts(query: str) -> list[str]:
     return facts
 
 
+def generate_with_hf_qwen(messages: list[dict]) -> str | None:
+    if not HF_QWEN_API_URL:
+        return None
+
+    headers = {"Content-Type": "application/json"}
+    if HF_API_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
+
+    payload = json.dumps(
+        {
+            "model": HF_QWEN_MODEL,
+            "messages": messages[-16:],
+            "temperature": 0.2,
+            "max_tokens": 500,
+        }
+    ).encode("utf-8")
+
+    try:
+        request = Request(HF_QWEN_API_URL, data=payload, headers=headers, method="POST")
+        with urlopen(request, timeout=HF_QWEN_TIMEOUT_SECONDS) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        answer = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+        return answer or None
+    except Exception as exc:
+        print(f"Hugging Face Qwen unavailable, using local fallback: {exc}")
+        return None
+
+
 def generate_text(messages: list[dict], fallback_query: str) -> str:
     context_blob = "\n\n".join(
         m.get("content", "")
@@ -845,6 +877,10 @@ def generate_text(messages: list[dict], fallback_query: str) -> str:
         if m.get("role") == "user" and m.get("content")
     )
     fallback_context = f"{fallback_query}\n\n{context_blob}".strip()
+
+    remote_answer = generate_with_hf_qwen(messages)
+    if remote_answer:
+        return add_agronomy_safety_note(clean_generation(remote_answer), fallback_query)
 
     rule_answer = rule_based_agronomy_answer(fallback_context)
     if rule_answer:
@@ -887,6 +923,7 @@ def health():
         "cuda": torch.cuda.is_available(),
         "weather_api_configured": bool(WEATHER_API_KEY),
         "market_api_configured": bool(MARKET_API_KEY),
+        "hf_qwen_configured": bool(HF_QWEN_API_URL),
     }
 
 
@@ -917,7 +954,10 @@ def chat(request: ChatRequest):
         "If live weather is available, use it directly and connect it to irrigation, fertilizer timing, and disease risk. "
         "If live mandi price data is available, use it for market-price, selling, or profit questions. "
         "Do not change user facts like crop age, soil nutrients, rainfall, crop stage, or location. "
-        "Never swap phosphorus with potassium or invent missing numbers."
+        "Never swap phosphorus with potassium or invent missing numbers. "
+        "Use this exact concise Markdown structure: **Assessment**, **What to do now**, "
+        "**Next 7 days**, **Safety**, and **Missing information**. Omit a section only when it truly does not apply. "
+        "Do not create a Sources section because verified source links are appended by the eKheti server."
     )
     if request.language:
         system += f" Reply in language code {request.language}."
