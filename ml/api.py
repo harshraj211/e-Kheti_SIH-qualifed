@@ -416,7 +416,7 @@ def extract_location_from_text(text: str) -> str | None:
         return None
 
     patterns = [
-        r"\b(?:in|at|near|around|from)\s+([A-Za-z][A-Za-z.-]+(?:\s+[A-Za-z][A-Za-z.-]+){0,3})(?:,\s*[A-Za-z][A-Za-z.-]+)?\b",
+        r"\b(?:in|at|near|around|from)\s+([A-Za-z][A-Za-z-]*(?:\s+[A-Za-z][A-Za-z-]*){0,3})(?:,\s*[A-Za-z][A-Za-z-]*)?\b",
         r"\blocation\s*[:\-]\s*([A-Za-z][A-Za-z .,-]{2,60})",
         r"\b(?:village|district|city|state)\s*[:\-]\s*([A-Za-z][A-Za-z .,-]{2,60})",
     ]
