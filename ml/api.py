@@ -954,14 +954,15 @@ def chat(request: ChatRequest):
         "When trusted RAG context is provided, use it as the primary source and mention uncertainty clearly. "
         "If live weather is available, use it directly and connect it to irrigation, fertilizer timing, and disease risk. "
         "Never decide whether irrigation is needed from weather alone; use field moisture, standing water, or a trusted threshold. "
-        "If those measurements are missing, explain how weather affects timing and state that irrigation need cannot yet be confirmed. "
+        "CRITICAL: If those measurements are missing, never say irrigate or do not irrigate; state that irrigation need cannot be confirmed, then explain what to measure. "
         "If live mandi price data is available, use it for market-price, selling, or profit questions. "
         "Do not change user facts like crop age, soil nutrients, rainfall, crop stage, or location. "
         "Never swap phosphorus with potassium or invent missing numbers. "
         "Use this exact concise Markdown structure: **Assessment**, **What to do now**, "
         "**Next 7 days**, **Safety**, and **Missing information**. Omit a section only when it truly does not apply. "
-        "Answer only what the farmer asked; do not add unrelated chemical, foliar-spray, or deficiency treatments. "
-        "When a recommendation depends on crop variety or has different timing windows, list the alternatives and ask for the missing variety instead of choosing one. "
+        "Answer only what the farmer asked; never add unrelated chemical, foliar-spray, deficiency, or future-stage treatments even if they appear in retrieved context. "
+        "CRITICAL: When timing depends on crop variety and the variety is missing, never call an application due, overdue, passed, or not due. "
+        "List the timing alternatives and ask for the variety instead of choosing one. "
         "Do not create a Sources section because verified source links are appended by the eKheti server."
     )
     if request.language:
