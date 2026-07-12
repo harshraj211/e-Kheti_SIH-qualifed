@@ -695,8 +695,39 @@ def clean_generation(text: str) -> str:
     text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
     text = re.sub(r"^\s*(okay,?\s*)?(let'?s\s+)?(think|reason)\b.*?(?=(#{1,3}\s|\*\*|1\.|\n\n|$))", "", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"\n>\s*\*?\s*$", "", text)
     text = re.sub(r"[ \t]+", " ", text).strip()
     return text or "I need a little more detail to give a useful farming advisory."
+
+
+def enforce_advisory_constraints(text: str, query: str) -> str:
+    lower_query = query.lower()
+    moisture_terms = ("soil moisture", "tensiometer", "standing water", "field is dry", "field is wet")
+    if "irrigat" in lower_query and not any(term in lower_query for term in moisture_terms):
+        text = re.sub(
+            r"\*\*Do not irrigate(?: today| tomorrow)?\*\*\.?",
+            "**Irrigation need cannot be confirmed yet**.",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+    variety_terms = ("variety", "cultivar", "pr 126", "short-duration", "long-duration")
+    if "fertiliz" in lower_query and not any(term in lower_query for term in variety_terms):
+        text = re.sub(
+            r"\*\*Do not apply fertilizer(?: today| tomorrow)?\*\*\.?",
+            "**Fertilizer timing cannot be confirmed yet**.",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+    symptom_terms = ("chlorosis", "iron deficiency", "yellow", "pale", "foliar", "ferrous", "potassium nitrate")
+    if not any(term in lower_query for term in symptom_terms):
+        text = re.sub(
+            r"(?im)^.*(?:chlorosis|iron deficiency|foliar|ferrous sulphate|potassium nitrate).*(?:\n|$)",
+            "",
+            text,
+        )
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
 def append_sources(text: str, sources: list[dict]) -> str:
@@ -881,7 +912,8 @@ def generate_text(messages: list[dict], fallback_query: str) -> str:
 
     remote_answer = generate_with_hf_qwen(messages)
     if remote_answer:
-        return add_agronomy_safety_note(clean_generation(remote_answer), fallback_query)
+        cleaned = enforce_advisory_constraints(clean_generation(remote_answer), fallback_query)
+        return add_agronomy_safety_note(cleaned, fallback_query)
 
     rule_answer = rule_based_agronomy_answer(fallback_context)
     if rule_answer:
