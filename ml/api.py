@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -26,6 +27,9 @@ DISEASE_CONFIDENCE_THRESHOLD = float(os.getenv("DISEASE_CONFIDENCE_THRESHOLD", "
 DISEASE_MARGIN_THRESHOLD = float(os.getenv("DISEASE_MARGIN_THRESHOLD", "0.12"))
 WEATHER_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY") or os.getenv("NEXT_PUBLIC_OPENWEATHERMAP_API_KEY") or ""
 WEATHER_API_BASE = os.getenv("OPENWEATHERMAP_API_BASE", "https://api.openweathermap.org/data/2.5/weather")
+WEATHER_FORECAST_API_BASE = os.getenv(
+    "OPENWEATHERMAP_FORECAST_API_BASE", "https://api.openweathermap.org/data/2.5/forecast"
+)
 MARKET_API_KEY = (
     os.getenv("AGMARKNET_API_KEY")
     or os.getenv("DATA_GOV_API_KEY")
@@ -199,6 +203,7 @@ class ChatRequest(BaseModel):
     documentContent: str | None = None
     language: str | None = None
     location: str | None = None
+    farmProfile: dict | None = None
 
 
 class ChatResponse(BaseModel):
@@ -246,6 +251,7 @@ class CurrentWeather(BaseModel):
     humidity: float
     wind_speed: float
     precipitation_1h: float
+    forecast: list[dict] = []
 
 
 class MarketPrice(BaseModel):
@@ -462,6 +468,7 @@ def fetch_current_weather(location: str) -> CurrentWeather | None:
     try:
         with urlopen(url, timeout=10) as response:
             payload = json.loads(response.read().decode("utf-8"))
+        forecast = fetch_weather_forecast(location)
         weather = CurrentWeather(
             location=f"{payload.get('name', location)}, {payload.get('sys', {}).get('country', '')}".strip(", "),
             temperature=round(float(payload.get("main", {}).get("temp", 0.0)), 1),
@@ -469,6 +476,7 @@ def fetch_current_weather(location: str) -> CurrentWeather | None:
             humidity=float(payload.get("main", {}).get("humidity", 0.0)),
             wind_speed=round(float(payload.get("wind", {}).get("speed", 0.0)) * 3.6, 1),
             precipitation_1h=float(payload.get("rain", {}).get("1h", 0.0) or 0.0),
+            forecast=forecast,
         )
         _weather_cache[cache_key] = weather
         return weather
@@ -477,14 +485,65 @@ def fetch_current_weather(location: str) -> CurrentWeather | None:
         return None
 
 
+def fetch_weather_forecast(location: str) -> list[dict]:
+    url = f"{WEATHER_FORECAST_API_BASE}?q={quote_plus(location)}&appid={WEATHER_API_KEY}&units=metric"
+    try:
+        with urlopen(url, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
+        daily: dict[str, dict] = {}
+        for item in payload.get("list", []):
+            date = str(item.get("dt_txt", "")).split(" ", 1)[0]
+            if not date:
+                continue
+            bucket = daily.setdefault(
+                date,
+                {"temperatures": [], "rain_mm": 0.0, "rain_probability": 0.0, "conditions": []},
+            )
+            bucket["temperatures"].append(float(item.get("main", {}).get("temp", 0.0)))
+            bucket["rain_mm"] += float(item.get("rain", {}).get("3h", 0.0) or 0.0)
+            bucket["rain_probability"] = max(bucket["rain_probability"], float(item.get("pop", 0.0) or 0.0))
+            condition = item.get("weather", [{}])[0].get("description")
+            if condition:
+                bucket["conditions"].append(condition)
+
+        result = []
+        for date, values in list(daily.items())[:7]:
+            temperatures = values["temperatures"] or [0.0]
+            conditions = values["conditions"]
+            common_condition = max(set(conditions), key=conditions.count).title() if conditions else "Unknown"
+            result.append(
+                {
+                    "date": date,
+                    "temp_min": round(min(temperatures), 1),
+                    "temp_max": round(max(temperatures), 1),
+                    "condition": common_condition,
+                    "rain_probability": round(values["rain_probability"] * 100),
+                    "rain_mm": round(values["rain_mm"], 1),
+                }
+            )
+        return result
+    except Exception as exc:
+        print(f"Forecast lookup failed for '{location}': {exc}")
+        return []
+
+
 def weather_to_text(weather: CurrentWeather | None) -> str:
     if not weather:
         return "Live weather unavailable."
     rain_note = f", rainfall last 1h {weather.precipitation_1h} mm" if weather.precipitation_1h else ""
-    return (
+    current = (
         f"Live weather for {weather.location}: {weather.temperature} C, {weather.condition}, "
         f"humidity {weather.humidity}%, wind {weather.wind_speed} km/h{rain_note}."
     )
+    if not weather.forecast:
+        return current + " Forecast unavailable."
+    forecast_lines = [
+        f"{day['date']}: {day['temp_min']}-{day['temp_max']} C, {day['condition']}, "
+        f"rain probability {day['rain_probability']}%, expected rain {day['rain_mm']} mm"
+        for day in weather.forecast
+    ]
+    return current + "\nForecast:\n" + "\n".join(forecast_lines)
 
 
 def extract_crop_from_text(text: str) -> str | None:
@@ -632,6 +691,10 @@ def retrieve_rag_context(query: str, top_k: int = RAG_TOP_K) -> tuple[str, list[
         return "", []
 
     query_set = set(query_tokens)
+    document_frequency = {
+        token: sum(1 for chunk in chunks if token in chunk["_token_set"])
+        for token in query_set
+    }
     scored = []
     lower_query = query.lower()
 
@@ -641,7 +704,23 @@ def retrieve_rag_context(query: str, top_k: int = RAG_TOP_K) -> tuple[str, list[
         if not overlap:
             continue
 
-        score = sum(2.5 if token in {"tomato", "rice", "paddy", "fungicide", "pesticide", "nitrogen", "irrigation", "blight"} else 1.0 for token in overlap)
+        score = 0.0
+        for token in overlap:
+            rarity = math.log((len(chunks) + 1) / (document_frequency[token] + 1)) + 1
+            domain_weight = 1.6 if token in {
+                "tomato", "rice", "paddy", "fungicide", "pesticide", "nitrogen",
+                "phosphorus", "potassium", "irrigation", "blight", "tillering",
+            } else 1.0
+            score += rarity * domain_weight
+
+        normalized_query = " ".join(query_tokens)
+        normalized_chunk = " ".join(tokenize(chunk.get("text", "")))
+        important_phrases = [
+            "early blight", "late blight", "bacterial spot", "brown spot", "leaf curl",
+            "soil test", "crop stage", "standing water", "split nitrogen",
+        ]
+        score += sum(5.0 for phrase in important_phrases if phrase in lower_query and phrase in normalized_chunk)
+        score += min(len(overlap) / max(len(query_set), 1), 1.0) * 4.0
 
         category = chunk.get("category", "")
         source = chunk.get("source", "").lower()
@@ -657,7 +736,16 @@ def retrieve_rag_context(query: str, top_k: int = RAG_TOP_K) -> tuple[str, list[
         scored.append((score, chunk))
 
     scored.sort(key=lambda item: item[0], reverse=True)
-    selected = [chunk for _, chunk in scored[:top_k]]
+    selected = []
+    source_counts: dict[str, int] = {}
+    for _, chunk in scored:
+        source = chunk.get("source", "")
+        if source_counts.get(source, 0) >= 2:
+            continue
+        selected.append(chunk)
+        source_counts[source] = source_counts.get(source, 0) + 1
+        if len(selected) >= top_k:
+            break
 
     if not selected:
         return "", []
@@ -965,6 +1053,8 @@ def chat(request: ChatRequest):
     location = find_best_location(request)
     live_weather = fetch_current_weather(location) if location else None
     weather_text = weather_to_text(live_weather)
+    profile = request.farmProfile or {}
+    profile_lines = [f"{key}: {value}" for key, value in profile.items() if value not in (None, "")]
     fact_lines = extract_farmer_facts(request.query)
     crop = extract_crop_from_text(
         "\n".join([request.query, request.documentContent or "", " ".join(item.text for item in request.history[-6:])])
@@ -974,7 +1064,7 @@ def chat(request: ChatRequest):
 
     rag_context, rag_sources = retrieve_rag_context(
         f"{request.query}\n{request.documentContent or ''}\n{request.managementType}\n"
-        f"{location or ''}\n{weather_text}\n{market_text}\n{crop or ''}"
+        f"{location or ''}\n{weather_text}\n{market_text}\n{crop or ''}\n" + "\n".join(profile_lines)
     )
     system = (
         "You are eKheti, an expert agricultural advisor for Indian farmers. "
@@ -1001,6 +1091,11 @@ def chat(request: ChatRequest):
         system += f" Reply in language code {request.language}."
 
     messages = [{"role": "system", "content": system}]
+    if profile_lines:
+        messages.append({
+            "role": "user",
+            "content": "Saved farm profile (treat as farmer-provided facts):\n- " + "\n- ".join(profile_lines),
+        })
     for item in request.history[-8:]:
         messages.append({"role": item.role, "content": item.text})
     if request.documentContent:

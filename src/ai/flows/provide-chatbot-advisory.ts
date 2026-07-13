@@ -9,6 +9,7 @@
  */
 
 import { analyzeLocalDiseaseImage, getLocalChatAdvice } from '@/lib/local-ai-client';
+import type { FarmProfile } from '@/lib/farm-profile';
 import {z} from 'zod';
 
 const ChatHistorySchema = z.object({
@@ -31,6 +32,7 @@ const ProvideChatbotAdvisoryInputSchema = z.object({
     .describe("Optional text content from a user-uploaded document."),
   history: z.array(ChatHistorySchema).optional().describe('The entire previous conversation history for context.'),
   language: z.string().optional().describe("The user's preferred language (e.g., 'en', 'hi')."),
+  farmProfile: z.custom<FarmProfile>().optional(),
 });
 export type ProvideChatbotAdvisoryInput = z.infer<typeof ProvideChatbotAdvisoryInputSchema>;
 
@@ -72,6 +74,8 @@ async function provideChatbotAdvisoryFlow(
     history: input.history,
     documentContent: documentContent || undefined,
     language: input.language,
+    location: input.farmProfile?.location || undefined,
+    farmProfile: input.farmProfile,
   });
 
   return ProvideChatbotAdvisoryOutputSchema.parse(output);

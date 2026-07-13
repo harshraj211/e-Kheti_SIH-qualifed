@@ -40,3 +40,11 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*
+
+# generated caches and build artifacts
+__pycache__/
+*.py[cod]
+/public/sw.js
+/public/workbox-*.js
+/src/next.config.ts

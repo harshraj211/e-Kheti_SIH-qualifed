@@ -10,7 +10,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/Logo';
-import { BotMessageSquare, LayoutDashboard, Leaf, TrendingUp, Wallet, Bell, CalendarDays, Newspaper, Home, Calculator, Users, Sun, Mic, BarChart } from 'lucide-react';
+import { BotMessageSquare, LayoutDashboard, Leaf, TrendingUp, Wallet, Bell, CalendarDays, Newspaper, Home, Calculator, Users, Sun, Mic, BarChart, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -114,6 +114,15 @@ export function SidebarNav({ managementType }: { managementType: 'crops' | 'frui
                 <Link href="/dashboard">
                   <Home />
                   <span>{t('sidebar.home')}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild onClick={handleLinkClick} tooltip="Farm Profile" isActive={isClient && pathname === '/dashboard/farm-profile'}>
+                <Link href="/dashboard/farm-profile">
+                  <UserRound />
+                  <span>Farm Profile</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

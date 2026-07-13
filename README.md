@@ -70,7 +70,7 @@ flowchart LR
 
 ### Retrieval-Augmented Generation
 
-The knowledge base contains official guides from organizations such as ICAR, PAU, TNAU, NHB, NFSM, and state agriculture bodies. The indexing pipeline extracts and chunks the documents into `ml/rag_index.jsonl`. At runtime, the API retrieves relevant passages and appends verified title, page, host, and source URL information to the final answer.
+The knowledge base contains official guides from organizations such as ICAR, PAU, TNAU, NHB, NFSM, and state agriculture bodies. The indexing pipeline extracts and chunks the documents into `ml/rag_index.jsonl`. At runtime, rarity-weighted retrieval, crop/category boosts, phrase matching, and source-diversity limits select relevant passages. The API appends verified title, page, host, and source URL information to the final answer.
 
 ### Qwen Advisory Generation
 
@@ -242,11 +242,37 @@ Production secrets belong in the provider's environment-variable settings, never
 
 - Move community posts and comments from browser storage to MongoDB/PostgreSQL.
 - Upgrade lexical retrieval to multilingual embeddings plus reranking.
-- Add hourly and seven-day forecast data with rainfall probability.
-- Evaluate the chatbot against a curated, expert-reviewed agriculture benchmark.
+- Add severe-weather push alerts and forecast-triggered farm reminders.
+- Expand `ml/evals/agriculture_eval.json` from its initial safety regression cases to a 200-500 question, expert-reviewed agriculture benchmark.
 - Train and validate the disease model on a larger mixed field-image dataset.
-- Add persistent farm profiles for acreage, crop variety, soil tests, and irrigation method.
+- Move farm profiles, chat feedback, and chat history from browser persistence to the production database.
 - Add observability for model latency, retrieval quality, API failures, and user feedback.
+
+Implemented foundations include reusable farm profiles, forecast-aware chat context, disease-result handoff to the chatbot, per-answer feedback, and an automated chatbot evaluation runner:
+
+```powershell
+.\.venv\Scripts\python.exe ml\run_chat_evals.py --api-url http://127.0.0.1:8000
+```
+
+Farm profiles and chatbot feedback use browser storage as an offline fallback and synchronize to MongoDB when these server-only variables are configured:
+
+```env
+MONGODB_URI=mongodb+srv://USER:PASSWORD@HOST/ekheti?retryWrites=true&w=majority
+MONGODB_DB=ekheti
+```
+
+Never prefix the connection string with `NEXT_PUBLIC_`. Verify a deployed connection at `/api/health/database`.
+
+### Authentication
+
+eKheti uses Better Auth with the MongoDB adapter. Email/password accounts, secure cookie sessions, protected dashboard routes, and per-user farm-profile and feedback ownership are enabled. Configure these server-only variables:
+
+```env
+BETTER_AUTH_SECRET=generate-a-random-32-byte-secret
+BETTER_AUTH_URL=http://localhost:9002
+```
+
+For production, set `BETTER_AUTH_URL` to the public Vercel domain. Google sign-in is enabled automatically when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are configured. The callback URL in Google Cloud must be `/api/auth/callback/google` on the relevant domain.
 
 ## Responsible Use
 

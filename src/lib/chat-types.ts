@@ -12,6 +12,7 @@ export interface Message {
   text: string;
   imagePreview?: string;
   document?: DocumentAttachment;
+  feedback?: 'helpful' | 'not_helpful';
 }
 
 export interface Conversation {

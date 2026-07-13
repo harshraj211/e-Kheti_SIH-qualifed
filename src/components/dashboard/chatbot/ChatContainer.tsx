@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { provideChatbotAdvisory, ProvideChatbotAdvisoryInput } from '@/ai/flows/provide-chatbot-advisory';
 import { ChatbotCard } from '../ChatbotCard';
@@ -11,6 +11,10 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { loadFarmProfile } from '@/lib/farm-profile';
+import { consumeDiseaseChatContext, diseaseContextToText } from '@/lib/disease-context';
+import { saveChatFeedback } from '@/lib/chat-feedback';
+import { useAuth } from '@/hooks/useAuth';
 
 
 const CHAT_HISTORY_KEY_PREFIX = 'agriVision-chatHistory';
@@ -28,6 +32,8 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const { toast } = useToast();
     const { language } = useTranslation();
+    const { user } = useAuth();
+    const pendingDiseaseContext = useRef<string>('');
 
     const [audioState, setAudioState] = useState({
         isPlaying: false,
@@ -38,8 +44,16 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
 
     // Load chat history from localStorage on component mount
     useEffect(() => {
-        const userEmail = 'farmer@example.com'; // Hardcoded user
-        const storedHistory = localStorage.getItem(`${CHAT_HISTORY_KEY}-${userEmail}`);
+        if (!user) return;
+        const diseaseContext = consumeDiseaseChatContext();
+        if (diseaseContext) {
+            pendingDiseaseContext.current = diseaseContextToText(diseaseContext);
+            toast({
+                title: 'Disease result attached',
+                description: 'Ask a follow-up question and the assistant will use the prediction and confidence.',
+            });
+        }
+        const storedHistory = localStorage.getItem(`${CHAT_HISTORY_KEY}-${user.id}`);
         const loadedConversations: Conversation[] = storedHistory ? JSON.parse(storedHistory) : [];
         
         if (loadedConversations.length > 0) {
@@ -50,17 +64,17 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
             setActiveConversationId(null);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [CHAT_HISTORY_KEY]);
+    }, [CHAT_HISTORY_KEY, toast, user]);
 
     // Save chat history to localStorage whenever it changes
     useEffect(() => {
-        const userEmail = 'farmer@example.com'; // Hardcoded user
+        if (!user) return;
         if (conversations.length > 0) {
-            localStorage.setItem(`${CHAT_HISTORY_KEY}-${userEmail}`, JSON.stringify(conversations));
+            localStorage.setItem(`${CHAT_HISTORY_KEY}-${user.id}`, JSON.stringify(conversations));
         } else {
-             localStorage.removeItem(`${CHAT_HISTORY_KEY}-${userEmail}`);
+             localStorage.removeItem(`${CHAT_HISTORY_KEY}-${user.id}`);
         }
-    }, [conversations, CHAT_HISTORY_KEY]);
+    }, [conversations, CHAT_HISTORY_KEY, user]);
 
 
     const handleNewChat = () => {
@@ -89,6 +103,28 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
         setActiveConversationId(id);
         setIsSheetOpen(false);
     }
+
+    const handleFeedback = (messageId: string, rating: 'helpful' | 'not_helpful') => {
+        if (!activeConversation) return;
+        const messageIndex = activeConversation.messages.findIndex(message => message.id === messageId);
+        const answer = activeConversation.messages[messageIndex];
+        const question = [...activeConversation.messages.slice(0, messageIndex)].reverse().find(message => message.role === 'user');
+        if (!answer || !question) return;
+
+        saveChatFeedback({
+            messageId,
+            conversationId: activeConversation.id,
+            rating,
+            question: question.text,
+            answer: answer.text,
+            createdAt: new Date().toISOString(),
+        });
+        setConversations(current => current.map(conversation => ({
+            ...conversation,
+            messages: conversation.messages.map(message => message.id === messageId ? { ...message, feedback: rating } : message),
+        })));
+        toast({ title: 'Feedback saved', description: rating === 'helpful' ? 'Thanks, this answer was marked helpful.' : 'Thanks, this answer was marked for review.' });
+    };
 
     const handleTextToSpeech = async (text: string, messageId: string) => {
         if (audioState.isPlaying && audioState.messageId === messageId) {
@@ -165,16 +201,20 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
                     text: m.text,
                 })) || [];
 
+                const diseaseContext = pendingDiseaseContext.current;
+                const documentContext = [attachments.document?.content, diseaseContext].filter(Boolean).join('\n\n');
                 const payload: ProvideChatbotAdvisoryInput = {
                     query: userMessage.text,
                     managementType: managementType,
                     photoDataUri: attachments.image || undefined,
-                    documentContent: attachments.document?.content || undefined,
+                    documentContent: documentContext || undefined,
                     history: history,
                     language: language,
+                    farmProfile: loadFarmProfile(),
                 };
 
                 const { advice } = await provideChatbotAdvisory(payload);
+                pendingDiseaseContext.current = '';
                 const assistantMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', text: advice };
 
                 setConversations(prev => prev.map(c => {
@@ -238,6 +278,7 @@ export function ChatContainer({ managementType }: ChatContainerProps) {
                     isSending={isSending}
                     onTextToSpeech={handleTextToSpeech}
                     audioState={audioState}
+                    onFeedback={handleFeedback}
                 />
             </div>
         </div>

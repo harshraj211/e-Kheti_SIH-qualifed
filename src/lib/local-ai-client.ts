@@ -1,4 +1,5 @@
 const LOCAL_AI_BASE_URL = process.env.LOCAL_AI_BASE_URL || 'http://127.0.0.1:8000';
+import type { FarmProfile } from '@/lib/farm-profile';
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${LOCAL_AI_BASE_URL}${path}`, {
@@ -33,6 +34,8 @@ export function getLocalChatAdvice(input: {
   history?: LocalChatMessage[];
   documentContent?: string;
   language?: string;
+  location?: string;
+  farmProfile?: FarmProfile;
 }) {
   return postJson<LocalChatResponse>('/chat', input);
 }

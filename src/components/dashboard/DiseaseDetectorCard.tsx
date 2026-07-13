@@ -18,6 +18,9 @@ import { analyzeFruitImageForDisease } from '@/ai/flows/analyze-fruit-image-for-
 import { Loader2, Upload, X, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Progress } from '../ui/progress';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useRouter } from 'next/navigation';
+import { MessageSquareText } from 'lucide-react';
+import { saveDiseaseChatContext } from '@/lib/disease-context';
 
 type AnalysisResult = {
   diseaseDetected: boolean;
@@ -38,6 +41,14 @@ export function DiseaseDetectorCard({ itemType }: DiseaseDetectorCardProps) {
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, language } = useTranslation();
+  const router = useRouter();
+
+  const discussWithAssistant = () => {
+    if (!result) return;
+    saveDiseaseChatContext({ ...result, itemType, createdAt: new Date().toISOString() });
+    const management = itemType === 'Fruit' ? 'fruits' : 'crops';
+    router.push(`/dashboard/${management}/chatbot?from=disease-detection`);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -198,6 +209,9 @@ export function DiseaseDetectorCard({ itemType }: DiseaseDetectorCardProps) {
                             <p className="text-sm text-muted-foreground">{result.suggestedSolutions}</p>
                         </CardContent>
                     </Card>
+                    <Button type="button" variant="outline" onClick={discussWithAssistant} className="w-full">
+                      <MessageSquareText className="mr-2 h-4 w-4" /> Discuss this result with the assistant
+                    </Button>
                 </div>
             )}
           </div>

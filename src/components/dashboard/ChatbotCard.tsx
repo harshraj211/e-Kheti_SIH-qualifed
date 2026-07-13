@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bot, Loader2, Paperclip, Send, User, X, FileText, AlertCircle, Mic, MicOff, Volume2, Speaker } from 'lucide-react';
+import { Bot, Loader2, Paperclip, Send, User, X, FileText, AlertCircle, Mic, MicOff, Volume2, Speaker, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ProvideChatbotAdvisoryInput } from '@/ai/flows/provide-chatbot-advisory';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -30,6 +30,7 @@ type ChatbotCardProps = {
         isLoading: boolean,
         messageId: string | null,
     }
+    onFeedback: (messageId: string, rating: 'helpful' | 'not_helpful') => void;
 };
 
 function cleanAssistantText(text: string) {
@@ -39,7 +40,7 @@ function cleanAssistantText(text: string) {
     .trim();
 }
 
-export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech, audioState }: ChatbotCardProps) {
+export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech, audioState, onFeedback }: ChatbotCardProps) {
   const [input, setInput] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
@@ -255,7 +256,13 @@ export function ChatbotCard({ conversation, onMessage, isSending, onTextToSpeech
                     <p className="whitespace-pre-wrap">{displayText}</p>
                   </div>
                   {message.role === 'assistant' && displayText && (
-                    <div className='absolute -bottom-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity'>
+                    <div className='mt-2 flex justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity'>
+                      <Button title="Helpful" size="icon" variant={message.feedback === 'helpful' ? 'secondary' : 'ghost'} className='h-7 w-7' onClick={() => onFeedback(message.id, 'helpful')}>
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button title="Not helpful" size="icon" variant={message.feedback === 'not_helpful' ? 'secondary' : 'ghost'} className='h-7 w-7' onClick={() => onFeedback(message.id, 'not_helpful')}>
+                        <ThumbsDown className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className='h-7 w-7' onClick={() => onTextToSpeech(displayText, message.id)} disabled={audioState.isLoading}>
                         {audioState.isLoading && audioState.messageId === message.id ? (
                            <Loader2 className="h-4 w-4 animate-spin" />
