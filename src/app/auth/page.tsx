@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Loader2, LogIn, UserPlus } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Logo } from '@/components/Logo';
@@ -90,6 +91,13 @@ function AuthForm({ mode, pending, error, onSubmit }: {
         <Input id={`${mode}-password`} name="password" type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} minLength={8} maxLength={128} required />
         {mode === 'signup' && <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>}
       </div>
+      {mode === 'login' && (
+        <div className="text-right">
+          <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+      )}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button className="w-full" disabled={pending}>
         {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : mode === 'signup' ? <UserPlus className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
