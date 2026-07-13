@@ -1,55 +1,62 @@
 <div align="center">
 
-  # eKheti
+# 🌾 eKheti
 
-  ### AI-powered decision support for Indian farmers
+### AI-powered decision support for Indian farmers
 
-  Crop disease detection, evidence-grounded agricultural advice, live weather, mandi prices, farm planning, and community support in one multilingual platform.
+Crop disease detection, evidence-grounded agricultural advice, live weather, mandi prices, farm planning, and community support in one multilingual platform.
 
-  [![Live Demo](https://img.shields.io/badge/Live_Demo-Open_eKheti-1f7a3d?style=for-the-badge)](https://ekheti-sih-qualified.vercel.app)
-  [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-  [![FastAPI](https://img.shields.io/badge/FastAPI-ML_API-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
-  [![Qwen](https://img.shields.io/badge/Qwen3-4B_Instruct-ff6f00?style=for-the-badge)](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Open_eKheti-1f7a3d?style=for-the-badge)](https://ekheti-sih-qualified.vercel.app)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-ML_API-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Qwen](https://img.shields.io/badge/Qwen3-4B_Instruct-ff6f00?style=for-the-badge)](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507)
 
-  **[Try the live application](https://ekheti-sih-qualified.vercel.app)** | **[View the source](https://github.com/harshraj211/e-Kheti_SIH-qualifed)**
+**[🚀 Try the live application](https://ekheti-sih-qualified.vercel.app)** &nbsp;•&nbsp; **[📂 View the source](https://github.com/harshraj211/e-Kheti_SIH-qualifed)**
+
 </div>
 
 ---
 
-## Overview
+## 📖 Overview
 
 eKheti is a full-stack precision-agriculture platform designed to turn fragmented farm data into practical decisions. A farmer can describe a crop problem, upload a leaf image, provide soil details, or ask about irrigation and fertilizer timing. eKheti combines official agricultural publications with live weather and market data, then uses Qwen3 to produce a structured, source-linked answer.
 
 This project was built as a hackathon product and developed further as a production-oriented engineering portfolio project. It demonstrates applied AI, retrieval-augmented generation, computer vision, external API orchestration, multilingual frontend development, cloud deployment, and safety-aware response design.
 
-## Why eKheti Stands Out
+---
 
-- **Grounded advice:** Retrieves evidence from official agriculture PDFs before generating recommendations.
-- **Context-aware reasoning:** Combines crop stage, soil details, location, live weather, and mandi information.
-- **Structured AI output:** Uses Hugging Face-hosted `Qwen/Qwen3-4B-Instruct-2507` for concise, readable advisories.
-- **Safety controls:** Prevents unsupported irrigation and fertilizer conclusions when required field data is missing.
-- **Computer vision:** Supports configurable PyTorch backbones for plant disease classification.
-- **Built for India:** Includes official Indian agriculture sources, mandi data, and a multilingual interface.
-- **Actually deployed:** Frontend runs on Vercel and the ML/RAG API runs on Render.
+## 🌟 Why eKheti Stands Out
 
-## Core Features
+- 🧾 **Grounded advice:** Retrieves evidence from official agriculture PDFs before generating recommendations.
+- 🧠 **Context-aware reasoning:** Combines crop stage, soil details, location, live weather, and mandi information.
+- 📐 **Structured AI output:** Uses Hugging Face-hosted `Qwen/Qwen3-4B-Instruct-2507` for concise, readable advisories.
+- 🛡️ **Safety controls:** Prevents unsupported irrigation and fertilizer conclusions when required field data is missing.
+- 🔬 **Computer vision:** Supports configurable PyTorch backbones for plant disease classification.
+- 🇮🇳 **Built for India:** Includes official Indian agriculture sources, mandi data, and a multilingual interface.
+- ☁️ **Actually deployed:** Frontend runs on Vercel and the ML/RAG API runs on Render.
+
+---
+
+## 🧩 Core Features
 
 | Module | What it provides |
 | --- | --- |
-| AI Farming Assistant | RAG-grounded answers with structured assessment, action plan, safety notes, missing information, and source links |
-| Disease Detection | Leaf-image classification with confidence score and recommended next steps |
-| Live Weather Intelligence | Location-aware temperature, humidity, wind, rainfall, and advisory context |
-| Mandi Market Prices | Crop-price lookup using official `data.gov.in` / Agmarknet data |
-| Crop & Fruit Management | Separate workflows for crop and fruit planning |
-| Crop Simulation | Profitability and farm-scenario exploration |
-| Crop Calendar | Activity planning across crop stages |
-| Expense Tracker | Farm income and expense monitoring |
-| Calculators | Practical agricultural calculations inside the dashboard |
-| Community Forum | Posts, comments, likes, and Cloudinary-backed image uploads |
-| Voice & Multilingual UI | Voice-oriented interaction and locale files for multiple Indian languages |
-| Reports & Notifications | Printable chat reports, weather alerts, price alerts, and farming reminders |
+| 🤖 AI Farming Assistant | RAG-grounded answers with structured assessment, action plan, safety notes, missing information, and source links |
+| 🍃 Disease Detection | Leaf-image classification with confidence score and recommended next steps |
+| ⛅ Live Weather Intelligence | Location-aware temperature, humidity, wind, rainfall, and advisory context |
+| 💰 Mandi Market Prices | Crop-price lookup using official `data.gov.in` / Agmarknet data |
+| 🌱 Crop & Fruit Management | Separate workflows for crop and fruit planning |
+| 📈 Crop Simulation | Profitability and farm-scenario exploration |
+| 🗓️ Crop Calendar | Activity planning across crop stages |
+| 🧮 Expense Tracker | Farm income and expense monitoring |
+| 🖩 Calculators | Practical agricultural calculations inside the dashboard |
+| 💬 Community Forum | Posts, comments, likes, and Cloudinary-backed image uploads |
+| 🎙️ Voice & Multilingual UI | Voice-oriented interaction and locale files for multiple Indian languages |
+| 🔔 Reports & Notifications | Printable chat reports, weather alerts, price alerts, and farming reminders |
 
-## AI System
+---
+
+## 🧠 AI System
 
 ```mermaid
 flowchart LR
@@ -67,11 +74,11 @@ flowchart LR
     S --> O[Structured advisory]
 ```
 
-### Retrieval-Augmented Generation
+### 🔎 Retrieval-Augmented Generation
 
 The knowledge base contains official guides from organizations such as ICAR, PAU, TNAU, NHB, NFSM, and state agriculture bodies. The indexing pipeline extracts and chunks the documents into `ml/rag_index.jsonl`. At runtime, rarity-weighted retrieval, crop/category boosts, phrase matching, and source-diversity limits select relevant passages. The API appends verified title, page, host, and source URL information to the final answer.
 
-### Qwen Advisory Generation
+### 💡 Qwen Advisory Generation
 
 The production chatbot uses **Qwen3-4B-Instruct-2507** through Hugging Face Inference Providers. The model receives only the selected evidence, live context, recent conversation history, and facts extracted from the farmer's question. Responses follow a stable format:
 
@@ -82,11 +89,11 @@ The production chatbot uses **Qwen3-4B-Instruct-2507** through Hugging Face Infe
 5. Missing information
 6. Verified sources
 
-### Agricultural Safety Layer
+### 🛡️ Agricultural Safety Layer
 
 Generation is followed by deterministic evidence checks. For example, eKheti does not claim that irrigation is required when field-moisture or standing-water information is missing. It also avoids selecting variety-dependent fertilizer timing when the farmer has not supplied the crop variety, and removes unrelated chemical treatments from the final response.
 
-### Disease Classification
+### 🍃 Disease Classification
 
 The training pipeline supports multiple torchvision architectures:
 
@@ -97,14 +104,16 @@ The training pipeline supports multiple torchvision architectures:
 
 This makes it possible to choose a lightweight model for local inference or a stronger model for Kaggle/cloud GPU training. The intended mixed training corpus combines controlled-background and field-style datasets such as New Plant Diseases, PlantDoc, tomato leaf disease, and rice leaf disease datasets.
 
-Published artifacts:
+**Published artifacts:**
 
 - [eKheti Plant Disease Classifier](https://huggingface.co/harshraj21/ekheti-plant-disease-classifier)
 - [eKheti Agricultural Qwen3 LoRA](https://huggingface.co/harshraj21/ekheti-advisory-qwen3-lora)
 
-On cloud hosts where the checkpoint is not stored locally, set `DISEASE_MODEL_REPO=harshraj21/ekheti-plant-disease-classifier`; the ML API downloads the checkpoint from the Hub on first use.
+> On cloud hosts where the checkpoint is not stored locally, set `DISEASE_MODEL_REPO=harshraj21/ekheti-plant-disease-classifier`; the ML API downloads the checkpoint from the Hub on first use.
 
-## Technology Stack
+---
+
+## 🛠️ Technology Stack
 
 | Layer | Technologies |
 | --- | --- |
@@ -116,7 +125,9 @@ On cloud hosts where the checkpoint is not stored locally, set `DISEASE_MODEL_RE
 | Media | Cloudinary |
 | Deployment | Vercel frontend, Render API, Hugging Face inference |
 
-## Repository Structure
+---
+
+## 📁 Repository Structure
 
 ```text
 e-Kheti_SIH-qualifed/
@@ -138,13 +149,17 @@ e-Kheti_SIH-qualifed/
 `-- docs/                    # Product and architecture documentation
 ```
 
-## Run Locally
+---
+
+## 🚀 Run Locally
 
 ### Prerequisites
 
-- Node.js 20+
-- Python 3.11
-- Git
+| Requirement | Notes |
+| --- | --- |
+| Node.js | 20+ |
+| Python | 3.11 |
+| Git | For cloning the repository |
 
 ### 1. Clone and install the frontend
 
@@ -156,7 +171,7 @@ npm install
 
 ### 2. Configure environment variables
 
-Create `.env` in the repository root. Never commit real credentials.
+Create `.env` in the repository root. **Never commit real credentials.**
 
 ```env
 LOCAL_AI_BASE_URL=http://127.0.0.1:8000
@@ -196,7 +211,9 @@ py -3.11 -m venv .venv
 
 The FastAPI service runs at `http://127.0.0.1:8000`. Check readiness at `http://127.0.0.1:8000/health`.
 
-## Training
+---
+
+## 🏋️ Training
 
 ### Disease classifier
 
@@ -220,9 +237,11 @@ Manual architecture selection is also supported:
 .\ml\train_advisory_windows.ps1
 ```
 
-GPU training is recommended for both workflows. Kaggle dual-T4 sessions or another CUDA environment can be used for larger datasets and stronger backbones.
+> GPU training is recommended for both workflows. Kaggle dual-T4 sessions or another CUDA environment can be used for larger datasets and stronger backbones.
 
-## Deployment
+---
+
+## ☁️ Deployment
 
 | Service | Responsibility | Deployment |
 | --- | --- | --- |
@@ -231,9 +250,11 @@ GPU training is recommended for both workflows. Kaggle dual-T4 sessions or anoth
 | Text generation | Qwen3 inference | Hugging Face Inference Providers |
 | Community media | Uploaded images | Cloudinary |
 
-Production secrets belong in the provider's environment-variable settings, never in browser-exposed variables or source control.
+> Production secrets belong in the provider's environment-variable settings, never in browser-exposed variables or source control.
 
-## Engineering Highlights
+---
+
+## 🏆 Engineering Highlights
 
 - Replaced an external Gemini dependency with an independently controlled RAG and Hugging Face generation pipeline.
 - Designed a hybrid AI architecture that keeps retrieval and agricultural policy logic separate from language generation.
@@ -244,7 +265,9 @@ Production secrets belong in the provider's environment-variable settings, never
 - Created configurable computer-vision training workflows for local and cloud GPUs.
 - Shipped a responsive dashboard with multilingual, reporting, finance, planning, and community modules.
 
-## Current Limitations & Roadmap
+---
+
+## 🗺️ Current Limitations & Roadmap
 
 - Move community posts and comments from browser storage to MongoDB/PostgreSQL.
 - Upgrade lexical retrieval to multilingual embeddings plus reranking.
@@ -267,9 +290,9 @@ MONGODB_URI=mongodb+srv://USER:PASSWORD@HOST/ekheti?retryWrites=true&w=majority
 MONGODB_DB=ekheti
 ```
 
-Never prefix the connection string with `NEXT_PUBLIC_`. Verify a deployed connection at `/api/health/database`.
+> Never prefix the connection string with `NEXT_PUBLIC_`. Verify a deployed connection at `/api/health/database`.
 
-### Authentication
+### 🔐 Authentication
 
 eKheti uses Better Auth with the MongoDB adapter. Email/password accounts, secure cookie sessions, protected dashboard routes, and per-user farm-profile and feedback ownership are enabled. Configure these server-only variables:
 
@@ -280,23 +303,29 @@ BETTER_AUTH_URL=http://localhost:9002
 
 For production, set `BETTER_AUTH_URL` to the public Vercel domain. Google sign-in is enabled automatically when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are configured. The callback URL in Google Cloud must be `/api/auth/callback/google` on the relevant domain.
 
-## Responsible Use
+---
+
+## ⚠️ Responsible Use
 
 eKheti is a decision-support system, not a replacement for an agronomist, KVK specialist, product label, or local agriculture authority. Chemical selection and dosage must be verified against the crop, diagnosis, local registration, weather conditions, and official recommendations.
 
-## Author
+---
+
+## 👤 Author
 
 **Harsh Raj**
 
 - GitHub: [@harshraj211](https://github.com/harshraj211)
 - Project: [eKheti live demo](https://ekheti-sih-qualified.vercel.app)
 
-## License
+## 📄 License
 
 This repository is currently provided for educational, hackathon, demonstration, and portfolio purposes. Add a formal open-source license before reuse or redistribution.
 
 ---
 
 <div align="center">
-  Built to make agricultural intelligence practical, explainable, and accessible.
+
+Built to make agricultural intelligence practical, explainable, and accessible. 🌾
+
 </div>
