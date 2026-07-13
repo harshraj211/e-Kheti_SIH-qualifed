@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="public/icons/icon-192x192.png" alt="eKheti logo" width="104" />
 
   # eKheti
 
