@@ -5,7 +5,7 @@ import { Logo } from "../Logo";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Languages, LogOut, UserRound } from "lucide-react";
+import { KeyRound, Languages, LogOut, UserRound } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { ScrollArea } from "../ui/scroll-area";
 import { useAuth } from '@/hooks/useAuth';
@@ -91,6 +91,11 @@ export function Header() {
               <p className="truncate text-sm font-medium">{user?.displayName}</p>
               <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
             </div>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/account">
+                <KeyRound className="mr-2 h-4 w-4" /> Change password
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" /> Sign out
             </DropdownMenuItem>
