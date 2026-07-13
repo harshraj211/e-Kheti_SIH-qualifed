@@ -1,8 +1,8 @@
 import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
-import { getDatabase } from '@/lib/mongodb';
+import { getDatabaseHandle } from '@/lib/mongodb';
 
-const database = await getDatabase();
+const database = getDatabaseHandle();
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
