@@ -18,6 +18,7 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
 DISEASE_MODEL_DIR = Path(os.getenv("DISEASE_MODEL_DIR", ROOT / "outputs" / "disease-classifier"))
+DISEASE_MODEL_REPO = os.getenv("DISEASE_MODEL_REPO", "").strip()
 ADVISORY_MODEL_DIR = Path(os.getenv("ADVISORY_MODEL_DIR", ROOT / "outputs" / "advisory-lora"))
 ADVISORY_BASE_MODEL = os.getenv("ADVISORY_BASE_MODEL", "Qwen/Qwen3-0.6B")
 RAG_INDEX_PATH = Path(os.getenv("RAG_INDEX_PATH", ROOT / "rag_index.jsonl"))
@@ -282,10 +283,27 @@ def load_disease_model():
         return _disease_model, _disease_labels, _disease_image_size
 
     model_path = DISEASE_MODEL_DIR / "model.pt"
+    if not model_path.exists() and DISEASE_MODEL_REPO:
+        try:
+            from huggingface_hub import hf_hub_download
+
+            model_path = Path(
+                hf_hub_download(
+                    repo_id=DISEASE_MODEL_REPO,
+                    filename="model.pt",
+                    token=HF_API_TOKEN or None,
+                )
+            )
+            print(f"Loaded disease checkpoint from Hugging Face: {DISEASE_MODEL_REPO}")
+        except Exception as exc:
+            print(f"Hugging Face disease checkpoint download failed: {exc}")
     if not model_path.exists():
         raise HTTPException(
             status_code=503,
-            detail=f"Disease model not found at {model_path}. Run ml/train_disease_windows.ps1 first.",
+            detail=(
+                f"Disease model not found at {model_path}. Train it locally or configure "
+                "DISEASE_MODEL_REPO with a Hugging Face model repository."
+            ),
         )
 
     from torch import nn

@@ -98,6 +98,13 @@ The training pipeline supports multiple torchvision architectures:
 
 This makes it possible to choose a lightweight model for local inference or a stronger model for Kaggle/cloud GPU training. The intended mixed training corpus combines controlled-background and field-style datasets such as New Plant Diseases, PlantDoc, tomato leaf disease, and rice leaf disease datasets.
 
+Published artifacts:
+
+- [eKheti Plant Disease Classifier](https://huggingface.co/harshraj21/ekheti-plant-disease-classifier)
+- [eKheti Agricultural Qwen3 LoRA](https://huggingface.co/harshraj21/ekheti-advisory-qwen3-lora)
+
+On cloud hosts where the checkpoint is not stored locally, set `DISEASE_MODEL_REPO=harshraj21/ekheti-plant-disease-classifier`; the ML API downloads the checkpoint from the Hub on first use.
+
 ## Technology Stack
 
 | Layer | Technologies |
